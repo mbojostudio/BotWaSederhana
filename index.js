@@ -22,15 +22,13 @@ async function loadFaqData() {
 function generateCustomReply(message) {
     const lowerCaseMessage = message.toLowerCase();
 
-    // Mencari jawaban berdasarkan kata kunci
     for (const faq of faqData) {
         if (lowerCaseMessage.includes(faq.question.toLowerCase())) {
             return faq.answer;
         }
     }
 
-    // Jika tidak ada jawaban yang ditemukan
-    return '          *Selamat Datang Di*\n         ꧁ 𝔐𝔟𝔬𝔧𝔬 𝔰𝔱𝔲𝔡𝔦𝔬 ꧂\n\n\n\nKetik *Menu* untuk melanjutkan.';
+    return null; // Tidak membalas jika tidak ada jawaban
 }
 
 // Fungsi untuk memulai WhatsApp bot
@@ -41,26 +39,24 @@ async function startWhatsAppBot() {
     const sock = makeWASocket({
         version,
         auth: state,
-        printQRInTerminal: false, // Matikan QR di terminal
-        logger: P({ level: 'error' }), // Logging hanya untuk menampilkan error
-        keepAliveIntervalMs: 50000, // Interval keep-alive diperpanjang menjadi 20 detik
+        printQRInTerminal: false,
+        logger: P({ level: 'error' }),
+        keepAliveIntervalMs: 50000,
     });
 
     sock.ev.on('creds.update', saveCreds);
 
-    let qrDisplayed = false; // Flag untuk mengecek apakah QR sudah ditampilkan
+    let qrDisplayed = false;
 
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
 
-        // Tampilkan QR hanya sekali
         if (qr && !qrDisplayed) {
             qrDisplayed = true;
             console.log('\nQR code untuk autentikasi:\n\n');
             qrcode.generate(qr, { small: true });
         }
 
-        // Jika koneksi terputus, coba reconnect
         if (connection === 'close') {
             const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
             console.log('Koneksi tertutup, reconnecting...', shouldReconnect);
@@ -68,9 +64,9 @@ async function startWhatsAppBot() {
             if (shouldReconnect) {
                 console.log('Mencoba reconnect dalam 5 detik...');
                 setTimeout(() => {
-                    qrDisplayed = false; // Reset flag QR saat reconnecting
-                    startWhatsAppBot(); // Restart bot
-                }, 1000); // Coba reconnect setelah 5 detik
+                    qrDisplayed = false;
+                    startWhatsAppBot();
+                }, 5000);
             } else {
                 console.log('Tidak akan mencoba reconnect karena status logged out.');
             }
@@ -84,17 +80,34 @@ async function startWhatsAppBot() {
         const message = messageUpdate.messages[0];
         if (!message || !message.message || message.key.fromMe) return;
 
+        const remoteJid = message.key.remoteJid;
+        const isGroup = remoteJid.endsWith('@g.us');
+
         const text = message.message.conversation || message.message.extendedTextMessage?.text;
-        if (text) {
-            console.log('Pesan diterima:', text);
+        const mentionedJid = message.message.extendedTextMessage?.contextInfo?.mentionedJid || [];
 
-            // Panggil fungsi custom reply
-            const reply = generateCustomReply(text);
-            console.log('Balasan custom:', reply);
+        if (!text) return;
 
-            // Kirim balasan ke WhatsApp
+        // Ambil nomor bot sendiri
+        const ownJid = sock.user.id.split(':')[0] + '@s.whatsapp.net';
+
+        if (isGroup) {
+            // Cek apakah bot disebut dalam grup
+            if (!mentionedJid.includes(ownJid)) {
+                console.log('Bot tidak disebut, mengabaikan pesan grup.');
+                return;
+            }
+        }
+
+        console.log('Pesan diterima:', text);
+
+        // Panggil fungsi custom reply
+        const reply = generateCustomReply(text);
+
+        // Kirim balasan jika ada jawaban yang cocok
+        if (reply) {
             try {
-                await sock.sendMessage(message.key.remoteJid, { text: reply });
+                await sock.sendMessage(remoteJid, { text: reply }, { quoted: message });
                 console.log('Pesan berhasil dikirim');
             } catch (error) {
                 console.error('Gagal mengirim pesan:', error);
