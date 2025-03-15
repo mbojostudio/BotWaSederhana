@@ -22,4 +22,4 @@ jobs:
         run: npm install
 
       - name: Start WhatsApp Bot
-        run: npm run start
+        run: npm start
