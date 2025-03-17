@@ -3,32 +3,44 @@ const qrcode = require('qrcode-terminal');
 const P = require('pino');
 const fs = require('fs');
 const path = require('path');
+const fetch = require('node-fetch');
 
-let faqData = [];
+const OPENROUTER_API_KEY = "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"; // Ganti dengan API Key Anda
+const SITE_URL = "https://mbojostudio.com"; // Opsional, untuk ranking di OpenRouter
+const SITE_NAME = "Mbojo Studio AI Bot"; // Opsional, untuk ranking di OpenRouter
 
-// Fungsi untuk memuat data FAQ dari file JSON
-async function loadFaqData() {
+// Fungsi untuk mengirim permintaan ke OpenRouter AI
+async function getAiResponse(userMessage) {
     try {
-        const dataPath = path.join(__dirname, 'data', 'faqData.json');
-        const fileData = fs.readFileSync(dataPath, 'utf8');
-        faqData = JSON.parse(fileData).faq;
-        console.log('FAQ data berhasil dimuat:', faqData);
+        const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+            method: "POST",
+            headers: {
+                "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                "HTTP-Referer": SITE_URL,
+                "X-Title": SITE_NAME,
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                "model": "google/gemma-3-27b-it:free",
+                "messages": [
+                    {
+                        "role": "system",
+                        "content": "Anda adalah chatbot cerdas dari Mbojo Studio. Tugas Anda adalah membantu pengguna dengan jawaban yang relevan dan informatif."
+                    },
+                    {
+                        "role": "user",
+                        "content": userMessage
+                    }
+                ]
+            })
+        });
+
+        const data = await response.json();
+        return data.choices?.[0]?.message?.content || "Maaf, saya tidak dapat memahami pertanyaan Anda.";
     } catch (error) {
-        console.error('Error saat memuat FAQ data:', error);
+        console.error("Error saat meminta balasan AI:", error);
+        return "Maaf, ada kesalahan dalam sistem AI.";
     }
-}
-
-// Fungsi untuk memberikan jawaban berdasarkan input pengguna
-function generateCustomReply(message) {
-    const lowerCaseMessage = message.toLowerCase();
-
-    for (const faq of faqData) {
-        if (lowerCaseMessage.includes(faq.question.toLowerCase())) {
-            return faq.answer;
-        }
-    }
-
-    return null; // Tidak membalas jika tidak ada jawaban
 }
 
 // Fungsi untuk memulai WhatsApp bot
@@ -71,7 +83,7 @@ async function startWhatsAppBot() {
                 console.log('Tidak akan mencoba reconnect karena status logged out.');
             }
         } else if (connection === 'open') {
-            console.log('WhatsApp Bot Terhubung!');
+            console.log("WhatsApp Bot Terhubung!");
         }
     });
 
@@ -101,23 +113,20 @@ async function startWhatsAppBot() {
 
         console.log('Pesan diterima:', text);
 
-        // Panggil fungsi custom reply
-        const reply = generateCustomReply(text);
+        // Panggil AI untuk mendapatkan balasan
+        const aiReply = await getAiResponse(text);
 
-        // Kirim balasan jika ada jawaban yang cocok
-        if (reply) {
-            try {
-                await sock.sendMessage(remoteJid, { text: reply }, { quoted: message });
-                console.log('Pesan berhasil dikirim');
-            } catch (error) {
-                console.error('Gagal mengirim pesan:', error);
-            }
+        // Kirim balasan
+        try {
+            await sock.sendMessage(remoteJid, { text: aiReply }, { quoted: message });
+            console.log('Pesan berhasil dikirim:', aiReply);
+        } catch (error) {
+            console.error('Gagal mengirim pesan:', error);
         }
     });
 }
-
-// Mulai bot dan load FAQ data
+// Mulai bot
 (async () => {
-    await loadFaqData();
     startWhatsAppBot();
 })();
+
