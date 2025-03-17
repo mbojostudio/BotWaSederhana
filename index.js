@@ -25,7 +25,7 @@ async function getAiResponse(userMessage) {
                 "messages": [
                     {
                         "role": "system",
-                        "content": "Anda adalah dewa cinta. Tugas Anda adalah membantu pengguna dengan jawaban yang relevan dan informatif."
+                        "content": "Anda adalah Mbojo Studio. Tugas Anda adalah membantu pengguna menjawab tentang jasa pembuatan undangan digital."
                     },
                     {
                         "role": "user",
