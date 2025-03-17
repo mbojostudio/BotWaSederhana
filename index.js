@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
 
-const OPENROUTER_API_KEY = "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"; // Ganti dengan API Key Anda
+const OPENROUTER_API_KEY = "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"; // Ganti dengan API Key Anda
 const SITE_URL = "https://mbojostudio.com"; // Opsional, untuk ranking di OpenRouter
 const SITE_NAME = "Mbojo Studio AI Bot"; // Opsional, untuk ranking di OpenRouter
 
