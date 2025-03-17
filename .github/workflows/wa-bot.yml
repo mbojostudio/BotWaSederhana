@@ -20,6 +20,10 @@ jobs:
 
       - name: Install dependencies
         run: npm install
+        
+      - name: Set environment variable
+        run: echo "OPENROUTER_API_KEY=${{ secrets.OPENROUTER_API_KEY }}" >> $GITHUB_ENV
+
 
       - name: Start WhatsApp Bot
         run: npm run start
