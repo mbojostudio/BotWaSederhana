@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 const fetch = require('node-fetch');
 
-const OPENROUTER_API_KEY = "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"; // Ganti dengan API Key Anda
+const OPENROUTER_API_KEY = "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"; // Ganti dengan API Key Anda
 const SITE_URL = "https://mbojostudio.com"; // Opsional, untuk ranking di OpenRouter
 const SITE_NAME = "Mbojo Studio AI Bot"; // Opsional, untuk ranking di OpenRouter
 
@@ -25,7 +25,7 @@ async function getAiResponse(userMessage) {
                 "messages": [
                     {
                         "role": "system",
-                        "content": "Anda adalah chatbot cerdas dari Mbojo Studio. Tugas Anda adalah membantu pengguna dengan jawaban yang relevan dan informatif."
+                        "content": "Anda adalah dewa cinta. Tugas Anda adalah membantu pengguna dengan jawaban yang relevan dan informatif."
                     },
                     {
                         "role": "user",
